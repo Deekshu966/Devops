@@ -1,52 +1,64 @@
 pipeline {
     agent any
-     tools{
-         jdk 'Java17'
-         maven 'Maven'
+
+    tools {
+        jdk 'Java17'
+        maven 'Maven'
     }
+
     stages {
+
         stage('Checkout Code') {
             steps {
-               echo "Pulling from GITHUB repository"
-               git branch: 'main', credentialsId: 'My_cred', url: 'https://github.com/Deekshu966/Devops.git'
-        }
-         stage('Test the Project') {
-            steps {
-               echo "Test my JAVA project"
-               bat 'mvn clean test' 
+                echo "Pulling from GITHUB repository"
+                git branch: 'main',
+                    credentialsId: 'My_cred',
+                    url: 'https://github.com/Deekshu966/Devops.git'
             }
-              post {
-                  always {
-                         junit '**/target/surefire-reports/*.xml'
-                         echo 'Test Run succeeded!'          
-					}
-				}
-		}
+        }
+
+        stage('Test the Project') {
+            steps {
+                echo "Testing my JAVA project"
+                bat 'mvn clean test'
+            }
+            post {
+                success {
+                    junit '**/target/surefire-reports/*.xml'
+                    echo 'Test Run succeeded!'
+                }
+                failure {
+                    echo 'Test Run failed!'
+                }
+            }
+        }
+
         stage('Build Project') {
             steps {
-               echo "Building my JAVA project"
-               bat 'mvn clean package -DskipTests' 
+                echo "Building my JAVA project"
+                bat 'mvn clean package -DskipTests'
             }
         }
-        stage('Test The Appln') {
+
+        stage('Test The Application') {
             steps {
-               echo "Testing my JAVA project"
+                echo "Application-level testing"
             }
         }
-        stage('Deploy the project') {
+
+        stage('Deploy the Project') {
             steps {
-                echo "Project is getting Deployed"
+                echo "Project is getting deployed"
             }
         }
     }
 
     post {
         success {
-            echo 'I succeeded!'
-           
+            echo 'Pipeline succeeded '
         }
         failure {
-            echo 'Failed........'
+            echo 'Pipeline failed '
         }
     }
 }
