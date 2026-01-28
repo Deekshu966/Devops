@@ -1,69 +1,74 @@
 pipeline {
     agent any
-     tools{
-         jdk 'Java17'
-         maven 'Maven'
+
+    tools {
+        jdk 'Java17'
+        maven 'Maven'
     }
+
     stages {
+
         stage('Checkout Code') {
             steps {
-               echo "Pulling from GITHUB repository"
-               git branch: 'main', credentialsId: '1fdc9f49-2da8-451b-922c-8a762bb25c64', url: 'https://github.com/Deekshu966/Devops.git'
-              
+                echo "Pulling from GITHUB repository"
+                git branch: 'main',
+                    credentialsId: '1fdc9f49-2da8-451b-922c-8a762bb25c64',
+                    url: 'https://github.com/Deekshu966/Devops.git'
             }
         }
-         stage('Test the Project') {
+
+        stage('Test the Project') {
             steps {
-               echo "Test my JAVA project"
-               bat 'mvn clean test' 
+                echo "Test my JAVA project"
+                bat 'mvn clean test'
             }
-              post {
-                  always {
-                         junit '**/target/surefire-reports/*.xml'
-                         echo 'Test Run succeeded!'          
-					}
-				}
-		}
+            post {
+                always {
+                    junit '**/target/surefire-reports/*.xml'
+                    echo 'Test Run succeeded!'
+                }
+            }
+        }
+
         stage('Build Project') {
             steps {
-               echo "Building my JAVA project"
-               bat 'mvn clean package -DskipTests' 
+                echo "Building my JAVA project"
+                bat 'mvn clean package -DskipTests'
             }
         }
-        stage(' Build the Docker Image') {
+
+        stage('Build Docker Image') {
             steps {
-               echo "Build the Docker Image for mvn project"
-               bat 'docker build -t mvnproj:1.0 .'
+                echo "Building Docker Image"
+                bat 'docker build -t mvnproj:1.0 .'
             }
         }
-         stage('Push Docker Image to DockerHub') {
+
+        stage('Push Docker Image to DockerHub') {
             steps {
-               echo "Push Docker Image to DockerHub for mvn project"
-                 withCredentials([string(credentialsId: 'dockerhubpwd', variable: 'DOCKER_PASS')]) {
-                         bat '''
-   	        echo %DOCKER_PASS% | docker login -u deekshu966 --password-stdin
-                         docker tag mvnproj:1.0 deekshu966/mymvnproj:latest
-                         docker push deekshu966/mymvnproj:latest
-                         '''
-                  }
+                script {
+                    docker.withRegistry('https://registry-1.docker.io', 'dockerhub-creds') {
+                        bat 'docker tag mvnproj:1.0 deekshu966/mymvnproj:latest'
+                        bat 'docker push deekshu966/mymvnproj:latest'
+                    }
+                }
             }
         }
-       
+
         stage('Deploy the project using Container') {
             steps {
                 echo "Running Java Application"
+                // docker run command can be added later
             }
         }
     }
 
     post {
         success {
-            echo 'I succeeded!'
-           
+            echo 'Pipeline executed successfully!'
         }
         failure {
-            echo 'Failed........'
+            echo 'Pipeline failed!'
         }
     }
 }
-
