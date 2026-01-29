@@ -41,7 +41,7 @@ pipeline {
                 echo "Login + Tag + Push"
                 withCredentials([usernamePassword(credentialsId: 'docker', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     bat """
-                    echo %DOCKER_PASS% | docker login -u %DOCKERHUB_USER% --password-stdin
+                    echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
                     if %ERRORLEVEL% NEQ 0 exit /b 1
  
                     docker tag %LOCAL_IMAGE% %DOCKERHUB_USER%/%IMAGE_NAME%:%IMAGE_TAG%
