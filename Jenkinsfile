@@ -8,8 +8,7 @@ pipeline {
         stage('Checkout Code') {
             steps {
                echo "Pulling from GITHUB repository"
-               git branch: 'main', credentialsId: '1fdc9f49-2da8-451b-922c-8a762bb25c64', url: 'https://github.com/Deekshu966/Devops.git'
-              
+               git branch: 'main', credentialsId: 'My_cred', url: 'https://github.com/Deekshu966/Devops.git/'
             }
         }
          stage('Test the Project') {
@@ -37,27 +36,24 @@ pipeline {
             }
         }
          stage('Push Docker Image to DockerHub') {
-            steps {
-                echo "Login + Tag + Push"
-                withCredentials([usernamePassword(credentialsId: 'dockerhubpwd', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    bat """
-                    echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
-                    if %ERRORLEVEL% NEQ 0 exit /b 1
- 
-                    docker tag %LOCAL_IMAGE% %DOCKERHUB_USER%/%IMAGE_NAME%:%IMAGE_TAG%
-                    docker push %DOCKERHUB_USER%/%IMAGE_NAME%:%IMAGE_TAG%
-                    """
-                }
-            }
+    steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhubpass',
+                                          usernameVariable: 'DOCKER_USER',
+                                          passwordVariable: 'DOCKER_PASS')]) {
+            bat '''
+            docker logout
+            echo %DOCKER_PASS%| docker login -u %DOCKER_USER% --password-stdin
+            docker tag mvnproj:1.0 %DOCKER_USER%/myapp:latest
+            docker push %DOCKER_USER%/myapp:latest
+            '''
         }
+    }
+}
        
-         stage('Deploy the project using Container') {
+       
+        stage('Deploy the project using Container') {
             steps {
                 echo "Running Java Application"
-                bat '''
-	docker rm -f myjavaappcont || exit 0
-	docker run --name myjavaappcont deekshu966/mymvnproj:latest
-	'''
             }
         }
     }
@@ -72,5 +68,3 @@ pipeline {
         }
     }
 }
-
-
