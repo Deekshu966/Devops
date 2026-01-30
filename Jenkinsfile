@@ -46,6 +46,22 @@ pipeline {
             docker tag mvnproj:1.0 %DOCKER_USER%/myapp:latest
             docker push %DOCKER_USER%/myapp:latest
             '''
+<<<<<<< HEAD
+=======
+        }
+    }
+}
+       
+       
+        stage('Deploy the project using Container') {
+            steps {
+                echo "Running Java Application"
+                bat '''
+	docker rm -f myjavaappcont || exit 0
+	docker run --name myjavaappcont deekshu966/mymvnproj:latest
+	'''
+            }
+>>>>>>> d04a31a342752dca124c045487dec6ffca4db1a2
         }
     }
 }
@@ -105,4 +121,12 @@ pipeline {
             echo 'Failed........'
         }
     }
+<<<<<<< HEAD
 }
+=======
+}
+
+
+
+
+>>>>>>> d04a31a342752dca124c045487dec6ffca4db1a2
