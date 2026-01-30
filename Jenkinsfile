@@ -71,31 +71,34 @@ pipeline {
 	            '''
             }
         }
-        stage('Parrallel Loading of services and Dashboard'){
+        
+        stage('Parallel Loading of Services and Dashboard'){
 			parallel{
-				stage('Run minikube dashboard'){
-                    steps{
-                        echo "Running minikube dashboard"
-                        bat '''
-                           "C:\\Program Files\\Kubernetes\\Minikube\\minikube.exe" dashboard
-                           echo "Dashboard is running"
-                        '''
-                    }
+				stage('Run Minikube Dashboard'){
+					steps{
+						echo "Running Minikube Dashboard"
+						bat '''
 					
+							"C:\\Program Files\\Kubernetes\\Minikube\\minikube.exe" addons enable metrics-server
+							"C:\\Program Files\\Kubernetes\\Minikube\\minikube.exe" dashboard
+							echo "Dashboard is running"
+						'''
+					}
 				}
 				stage('Run minikube services'){
-                    steps{
-                        echo "Running minikube services"
-                        bat '''
-                           "C:\\Program Files\\Kubernetes\\Minikube\\minikube.exe" service --all
-                           echo "All services are running"
-                        '''				
-				}
+					steps{
+						echo "Running minikube services"
+						bat '''
+							"C:\\Program Files\\Kubernetes\\Minikube\\minikube.exe" service --all
+							echo "All services are running"
+						'''
+					}
+		 		}
 			}
-		}
-        
-    }
+		 }
+		 
 	}
+
     post {
         success {
             echo 'I succeeded!'
