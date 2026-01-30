@@ -8,8 +8,7 @@ pipeline {
         stage('Checkout Code') {
             steps {
                echo "Pulling from GITHUB repository"
-               git branch: 'main', credentialsId: '1fdc9f49-2da8-451b-922c-8a762bb25c64', url: 'https://github.com/Deekshu966/Devops.git'
-              
+               git branch: 'main', credentialsId: 'My_cred', url: 'https://github.com/Deekshu966/Devops.git/'
             }
         }
          stage('Test the Project') {
@@ -37,25 +36,66 @@ pipeline {
             }
         }
          stage('Push Docker Image to DockerHub') {
-            steps {
-               echo "Push Docker Image to DockerHub for mvn project"
-                 withCredentials([string(credentialsId: 'dockerhubpwd', variable: 'DOCKER_PASS')]) {
-                         bat '''
-   	        echo %DOCKER_PASS% | docker login -u deekshu966 --password-stdin
-                         docker tag mvnproj:1.0 deekshu966/mymvnproj:latest
-                         docker push deekshu966/mymvnproj:latest
-                         '''
-                  }
-            }
-        }
-       
-        stage('Deploy the project using Container') {
-            steps {
-                echo "Running Java Application"
-            }
+    steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhubpass',
+                                          usernameVariable: 'DOCKER_USER',
+                                          passwordVariable: 'DOCKER_PASS')]) {
+            bat '''
+            docker logout
+            echo %DOCKER_PASS%| docker login -u %DOCKER_USER% --password-stdin
+            docker tag mvnproj:1.0 %DOCKER_USER%/myapp:latest
+            docker push %DOCKER_USER%/myapp:latest
+            '''
         }
     }
-
+}
+       
+       
+        stage('Deploy the project using k8s') {
+            steps {
+                echo "Running Java Application in k8s"
+                bat '''
+                   minikube delete
+	               minikube start
+	               minikube status
+	               
+	               minikube image load deekshu966/mymvnproj:latest
+	               kubectl apply -f deployment.yaml
+	               sleep 20
+	               kubectl get pods
+	               kubectl apply -f services.yaml
+	               sleep 10
+	               kubectl get services
+	               minikube image ls   
+	           
+	            '''
+            }
+        }
+        stage('Parrallel Loading of services and Dashboard'){
+			parallel{
+				stage('Run minikube dashboard'){
+                    steps{
+                        echo "Running minikube dashboard"
+                        bat '''
+                           minikube dashboard
+                           echo "Dashboard is running"
+                        '''
+                    }
+					
+				}
+				stage('Run minikube services'){
+                    steps{
+                        echo "Running minikube services"
+                        bat '''
+                           minikube service --all
+                           echo "All services are running"
+                        '''				
+				}
+			}
+		}
+        
+    }
+	}
     post {
         success {
             echo 'I succeeded!'
@@ -66,4 +106,3 @@ pipeline {
         }
     }
 }
-
