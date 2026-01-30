@@ -1,124 +1,108 @@
 pipeline {
     agent any
-
-    tools {
-        jdk 'Java17'
-        maven 'Maven'
+     tools{
+         jdk 'Java17'
+         maven 'Maven'
     }
-
-    environment {
-        // DockerHub credentials ID in Jenkins
-        DOCKER_CREDENTIALS = 'dockerhub-creds'
-
-        // Docker image details
-        DOCKER_IMAGE = 'deekshu966/myapp'
-        DOCKER_TAG   = 'latest'
-
-        // Minikube full path (IMPORTANT)
-        MINIKUBE = '"C:\\Program Files\\Kubernetes\\Minikube\\minikube.exe"'
-    }
-
     stages {
-
         stage('Checkout Code') {
             steps {
-                echo 'Pulling code from GitHub'
-                git branch: 'main',
-                    credentialsId: '1fdc9f49-2da8-451b-922c-8a762bb25c64',
-                    url: 'https://github.com/Deekshu966/Devops.git'
+               echo "Pulling from GITHUB repository"
+               git branch: 'main', credentialsId: 'My_cred', url: 'https://github.com/Deekshu966/Devops.git/'
             }
         }
-
-        stage('Test the Project') {
+         stage('Test the Project') {
             steps {
-                echo 'Running unit tests'
-                bat 'mvn clean test'
+               echo "Test my JAVA project"
+               bat 'mvn clean test' 
             }
-            post {
-                always {
-                    junit '**/target/surefire-reports/*.xml'
-                    echo 'Test Run succeeded!'
-                }
-            }
-        }
-
+              post {
+                  always {
+                         junit '**/target/surefire-reports/*.xml'
+                         echo 'Test Run succeeded!'          
+					}
+				}
+		}
         stage('Build Project') {
             steps {
-                echo 'Building Maven project'
-                bat 'mvn clean package -DskipTests'
+               echo "Building my JAVA project"
+               bat 'mvn clean package -DskipTests' 
             }
         }
-
-        stage('Build Docker Image') {
+        stage(' Build the Docker Image') {
             steps {
-                echo 'Building Docker image'
-                bat 'docker build -t mvnproj:1.0 .'
+               echo "Build the Docker Image for mvn project"
+               bat 'docker build -t mvnproj:1.0 .'
             }
         }
-
-        stage('Push Docker Image to DockerHub') {
-            steps {
-                withCredentials([usernamePassword(
-                        credentialsId: env.DOCKER_CREDENTIALS,
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    bat '''
-                        docker logout
-                        echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
-                        docker tag mvnproj:1.0 %DOCKER_IMAGE%:%DOCKER_TAG%
-                        docker push %DOCKER_IMAGE%:%DOCKER_TAG%
-                    '''
-                }
-            }
-        }
-
-        stage('Start Minikube') {
-            steps {
-                echo 'Starting Minikube'
-                bat '%MINIKUBE% start'
-                bat '%MINIKUBE% status'
-            }
-        }
-
-        stage('Deploy to Kubernetes') {
-            steps {
-                echo 'Deploying application to Kubernetes'
-                bat 'kubectl apply -f deployment.yaml'
-                bat 'kubectl apply -f services.yaml'
-
-                echo 'Waiting for pods to start'
-                bat 'timeout /t 20 /nobreak'
-
-                bat 'kubectl get pods'
-                bat 'kubectl get services'
-            }
-        }
-
-        stage('Minikube Dashboard & Services') {
-            parallel {
-                stage('Minikube Dashboard') {
-                    steps {
-                        echo 'Opening Minikube dashboard'
-                        bat '%MINIKUBE% dashboard'
-                    }
-                }
-                stage('Minikube Services') {
-                    steps {
-                        echo 'Listing Minikube services'
-                        bat '%MINIKUBE% service list'
-                    }
-                }
-            }
+         stage('Push Docker Image to DockerHub') {
+    steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhubpass',
+                                          usernameVariable: 'DOCKER_USER',
+                                          passwordVariable: 'DOCKER_PASS')]) {
+            bat '''
+            docker logout
+            echo %DOCKER_PASS%| docker login -u %DOCKER_USER% --password-stdin
+            docker tag mvnproj:1.0 %DOCKER_USER%/myapp:latest
+            docker push %DOCKER_USER%/myapp:latest
+            '''
         }
     }
-
+}
+       
+       
+        stage('Deploy the project using k8s') {
+            steps {
+                echo "Running Java Application in k8s"
+                bat '''
+                   "C:\\Program Files\\Kubernetes\\Minikube\\minikube.exe" delete
+	               "C:\\Program Files\\Kubernetes\\Minikube\\minikube.exe" start
+	               "C:\\Program Files\\Kubernetes\\Minikube\\minikube.exe" status
+	               
+	               "C:\\Program Files\\Kubernetes\\Minikube\\minikube.exe" image load deekshu966/mymvnproj:latest
+	               kubectl apply -f deployment.yaml
+	               sleep 20
+	               kubectl get pods
+	               kubectl apply -f services.yaml
+	               sleep 10
+	               kubectl get services
+	               "C:\\Program Files\\Kubernetes\\Minikube\\minikube.exe" image ls   
+	           
+	            '''
+            }
+        }
+        stage('Parrallel Loading of services and Dashboard'){
+			parallel{
+				stage('Run minikube dashboard'){
+                    steps{
+                        echo "Running minikube dashboard"
+                        bat '''
+                           "C:\\Program Files\\Kubernetes\\Minikube\\minikube.exe" dashboard
+                           echo "Dashboard is running"
+                        '''
+                    }
+					
+				}
+				stage('Run minikube services'){
+                    steps{
+                        echo "Running minikube services"
+                        bat '''
+                           "C:\\Program Files\\Kubernetes\\Minikube\\minikube.exe" service --all
+                           echo "All services are running"
+                        '''				
+				}
+			}
+		}
+        
+    }
+	}
     post {
         success {
-            echo 'Pipeline executed successfully '
+            echo 'I succeeded!'
+           
         }
         failure {
-            echo 'Pipeline failed '
+            echo 'Failed........'
         }
     }
 }
